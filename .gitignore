@@ -1,0 +1,20 @@
+# Python virtual environment
+.venv/
+env/
+venv/
+ENV/
+
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE & Assistant files
+.agents/
+.gemini/
+.vscode/
+.idea/
+
+# Large dataset binaries (>100MB exceeds GitHub push limit)
+*.npy
+Data/**/*.npy
