@@ -57,6 +57,14 @@ Run commands from the repository root, `ML_mini_source`.
 
 The full dataset is large and the CNN models can use substantial memory. The following commands run the six Table 1 models one at a time on the same stratified 150-image sample. Wait for each command to finish before starting the next one.
 
+For a single-command run that also captures a proof transcript, use:
+
+```powershell
+python .\run_smoke_150.py
+```
+
+The runner prints every model's output, stops if a model fails, and saves a timestamped transcript in `run_logs/`.
+
 ```powershell
 $env:OMP_NUM_THREADS="1"
 $env:TF_NUM_INTRAOP_THREADS="1"

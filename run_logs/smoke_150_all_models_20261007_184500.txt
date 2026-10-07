@@ -1,0 +1,250 @@
+ML structural damage classification: six-model smoke run
+Started: 2026-10-07T18:45:00
+Dataset sample: 150 images, stratified into 135 train and 15 validation images
+Execution: sequential, one process at a time
+
+
+===== 01_knn =====
+$ C:\Users\Sushruth S\AppData\Local\Microsoft\WindowsApps\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\python.exe C:\Users\Sushruth S\Downloads\ML_Mini_Project\ML_mini_source\code\01_knn.py --smoke --smoke_samples 150
+
+=== Running KNN (k=5) [Mode: SMOKE TEST] ===
+Loading data...
+Train samples: 135 (Damaged: 72, Undamaged: 63)
+Val samples:   15 (Damaged: 8, Undamaged: 7)
+Flattening and scaling image features...
+Fitting KNeighborsClassifier(n_neighbors=5, algorithm='brute')...
+Evaluating predictions...
+--------------------------------------------------
+KNN (k=5) Results (Elapsed: 0.99s):
+  Train Accuracy:      68.89% (0.6889)
+  Validation Accuracy: 66.67% (0.6667)
+--------------------------------------------------
+
+
+===== 02_logistic_regression =====
+$ C:\Users\Sushruth S\AppData\Local\Microsoft\WindowsApps\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\python.exe C:\Users\Sushruth S\Downloads\ML_Mini_Project\ML_mini_source\code\02_logistic_regression.py --smoke --smoke_samples 150 --max_iter 100
+
+=== Running Logistic Regression (L2, C=1.0) [Mode: SMOKE TEST] ===
+Loading data...
+Train samples: 135 (Damaged: 72, Undamaged: 63)
+Val samples:   15 (Damaged: 8, Undamaged: 7)
+Flattening and scaling image features...
+Fitting LogisticRegression(C=1.0, max_iter=100)...
+Evaluating predictions...
+--------------------------------------------------
+Logistic Regression Results (Elapsed: 2.77s):
+  Train Accuracy:      100.00% (1.0000)
+  Validation Accuracy: 53.33% (0.5333)
+--------------------------------------------------
+
+
+===== 03_svm_rbf =====
+$ C:\Users\Sushruth S\AppData\Local\Microsoft\WindowsApps\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\python.exe C:\Users\Sushruth S\Downloads\ML_Mini_Project\ML_mini_source\code\03_svm_rbf.py --smoke --smoke_samples 150
+
+=== Running SVM RBF (C=1.0, gamma=0.001) [Mode: SMOKE TEST] ===
+Loading data...
+Train samples: 135 (Damaged: 72, Undamaged: 63)
+Val samples:   15 (Damaged: 8, Undamaged: 7)
+Flattening and scaling image features...
+Fitting SVC(kernel='rbf', C=1.0, gamma=0.001)...
+Evaluating predictions...
+--------------------------------------------------
+SVM RBF Results (Elapsed: 4.30s):
+  Train Accuracy:      100.00% (1.0000)
+  Validation Accuracy: 53.33% (0.5333)
+--------------------------------------------------
+
+
+===== 04_mobilenetv1 =====
+$ C:\Users\Sushruth S\AppData\Local\Microsoft\WindowsApps\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\python.exe C:\Users\Sushruth S\Downloads\ML_Mini_Project\ML_mini_source\code\04_mobilenetv1.py --smoke --smoke_samples 150 --batch_size 16
+
+=== Running MobileNetV1 [Mode: SMOKE TEST, Epochs: 2] ===
+Loading data...
+Train samples: 135 (Damaged: 72, Undamaged: 63)
+Val samples:   15 (Damaged: 8, Undamaged: 7)
+Building MobileNetV1 transfer learning model...
+Model: "MobileNetV1_Transfer"
++------------------------------------------------------------------------------
+| Layer (type)                      | Output Shape             |       Param # 
+|-----------------------------------+--------------------------+---------------
+| input_layer_1 (InputLayer)        | (None, 224, 224, 3)      |             0 
+|-----------------------------------+--------------------------+---------------
+| mobilenet_1.00_224 (Functional)   | (None, 7, 7, 1024)       |     3,228,864 
+|-----------------------------------+--------------------------+---------------
+| global_average_pooling2d          | (None, 1024)             |             0 
+| (GlobalAveragePooling2D)          |                          |               
+|-----------------------------------+--------------------------+---------------
+| dropout (Dropout)                 | (None, 1024)             |             0 
+|-----------------------------------+--------------------------+---------------
+| dense (Dense)                     | (None, 2)                |         2,050 
++------------------------------------------------------------------------------
+ Total params: 3,230,914 (12.32 MB)
+ Trainable params: 2,050 (8.01 KB)
+ Non-trainable params: 3,228,864 (12.32 MB)
+Training for 2 epochs with batch size 16...
+Epoch 1/2
+
+[1m1/9[0m [32m==[0m[37m==================[0m [1m13s[0m 2s/step - accuracy: 0.6875 - loss: 0.9424
+[1m2/9[0m [32m====[0m[37m================[0m [1m2s[0m 404ms/step - accuracy: 0.6719 - loss: 0.8866
+[1m3/9[0m [32m======[0m[37m==============[0m [1m2s[0m 383ms/step - accuracy: 0.6424 - loss: 0.8604
+[1m4/9[0m [32m========[0m[37m============[0m [1m1s[0m 382ms/step - accuracy: 0.6302 - loss: 0.8349
+[1m5/9[0m [32m===========[0m[37m=========[0m [1m1s[0m 389ms/step - accuracy: 0.6192 - loss: 0.8194
+[1m6/9[0m [32m=============[0m[37m=======[0m [1m1s[0m 382ms/step - accuracy: 0.6132 - loss: 0.8137
+[1m7/9[0m [32m===============[0m[37m=====[0m [1m0s[0m 377ms/step - accuracy: 0.6085 - loss: 0.8076
+[1m8/9[0m [32m=================[0m[37m===[0m [1m0s[0m 374ms/step - accuracy: 0.6037 - loss: 0.8038
+[1m9/9[0m [32m====================[0m[37m[0m [1m0s[0m 345ms/step - accuracy: 0.5992 - loss: 0.8047
+[1m9/9[0m [32m====================[0m[37m[0m [1m5s[0m 442ms/step - accuracy: 0.5630 - loss: 0.8120 - val_accuracy: 0.6667 - val_loss: 0.5522
+Epoch 2/2
+
+[1m1/9[0m [32m==[0m[37m==================[0m [1m2s[0m 374ms/step - accuracy: 0.5000 - loss: 0.8251
+[1m2/9[0m [32m====[0m[37m================[0m [1m2s[0m 364ms/step - accuracy: 0.5312 - loss: 0.7924
+[1m3/9[0m [32m======[0m[37m==============[0m [1m2s[0m 362ms/step - accuracy: 0.5556 - loss: 0.7527
+[1m4/9[0m [32m========[0m[37m============[0m [1m1s[0m 367ms/step - accuracy: 0.5690 - loss: 0.7562
+[1m5/9[0m [32m===========[0m[37m=========[0m [1m1s[0m 364ms/step - accuracy: 0.5702 - loss: 0.7656
+[1m6/9[0m [32m=============[0m[37m=======[0m [1m1s[0m 361ms/step - accuracy: 0.5707 - loss: 0.7730
+[1m7/9[0m [32m===============[0m[37m=====[0m [1m0s[0m 360ms/step - accuracy: 0.5746 - loss: 0.7772
+[1m8/9[0m [32m=================[0m[37m===[0m [1m0s[0m 361ms/step - accuracy: 0.5809 - loss: 0.7748
+[1m9/9[0m [32m====================[0m[37m[0m [1m0s[0m 334ms/step - accuracy: 0.5871 - loss: 0.7710
+[1m9/9[0m [32m====================[0m[37m[0m [1m3s[0m 380ms/step - accuracy: 0.6370 - loss: 0.7402 - val_accuracy: 0.6667 - val_loss: 0.5588
+Evaluating model performance...
+--------------------------------------------------
+MobileNetV1 Results (Elapsed: 12.96s):
+  Train Accuracy:      73.33% (0.7333)
+  Validation Accuracy: 66.67% (0.6667)
+--------------------------------------------------
+
+[stderr]
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1791378915.557693   23224 cpu_feature_guard.cc:227] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: SSE3 SSE4.1 SSE4.2 AVX AVX2 AVX_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+WARNING:tensorflow:TensorFlow GPU support is not available on native Windows for TensorFlow >= 2.11. Even if CUDA/cuDNN are installed, GPU will not be used. Please use WSL2 or the TensorFlow-DirectML plugin.
+
+
+===== 05_inceptionv3 =====
+$ C:\Users\Sushruth S\AppData\Local\Microsoft\WindowsApps\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\python.exe C:\Users\Sushruth S\Downloads\ML_Mini_Project\ML_mini_source\code\05_inceptionv3.py --smoke --smoke_samples 150 --batch_size 16
+
+=== Running InceptionV3 Baseline [Mode: SMOKE TEST, Epochs: 2] ===
+Loading data...
+Train samples: 135 (Damaged: 72, Undamaged: 63)
+Val samples:   15 (Damaged: 8, Undamaged: 7)
+Building InceptionV3 baseline model (frozen base, SGD lr=0.01)...
+Model: "InceptionV3_Baseline"
++------------------------------------------------------------------------------
+| Layer (type)                      | Output Shape             |       Param # 
+|-----------------------------------+--------------------------+---------------
+| input_layer_1 (InputLayer)        | (None, 224, 224, 3)      |             0 
+|-----------------------------------+--------------------------+---------------
+| inception_v3 (Functional)         | (None, 5, 5, 2048)       |    21,802,784 
+|-----------------------------------+--------------------------+---------------
+| global_average_pooling2d          | (None, 2048)             |             0 
+| (GlobalAveragePooling2D)          |                          |               
+|-----------------------------------+--------------------------+---------------
+| dense (Dense)                     | (None, 2)                |         4,098 
++------------------------------------------------------------------------------
+ Total params: 21,806,882 (83.19 MB)
+ Trainable params: 4,098 (16.01 KB)
+ Non-trainable params: 21,802,784 (83.17 MB)
+Training for 2 epochs with batch size 16...
+Epoch 1/2
+
+[1m1/9[0m [32m==[0m[37m==================[0m [1m33s[0m 4s/step - accuracy: 0.7500 - loss: 0.7412
+[1m2/9[0m [32m====[0m[37m================[0m [1m6s[0m 920ms/step - accuracy: 0.6719 - loss: 0.8105
+[1m3/9[0m [32m======[0m[37m==============[0m [1m5s[0m 908ms/step - accuracy: 0.6146 - loss: 0.9505
+[1m4/9[0m [32m========[0m[37m============[0m [1m4s[0m 903ms/step - accuracy: 0.5742 - loss: 1.0479
+[1m5/9[0m [32m===========[0m[37m=========[0m [1m3s[0m 906ms/step - accuracy: 0.5569 - loss: 1.0927
+[1m6/9[0m [32m=============[0m[37m=======[0m [1m2s[0m 907ms/step - accuracy: 0.5474 - loss: 1.1057
+[1m7/9[0m [32m===============[0m[37m=====[0m [1m1s[0m 907ms/step - accuracy: 0.5368 - loss: 1.1086
+[1m8/9[0m [32m=================[0m[37m===[0m [1m0s[0m 903ms/step - accuracy: 0.5302 - loss: 1.1053
+[1m9/9[0m [32m====================[0m[37m[0m [1m0s[0m 837ms/step - accuracy: 0.5248 - loss: 1.1009
+[1m9/9[0m [32m====================[0m[37m[0m [1m13s[0m 1s/step - accuracy: 0.4815 - loss: 1.0659 - val_accuracy: 0.4667 - val_loss: 2.0878
+Epoch 2/2
+
+[1m1/9[0m [32m==[0m[37m==================[0m [1m7s[0m 971ms/step - accuracy: 0.5625 - loss: 1.5701
+[1m2/9[0m [32m====[0m[37m================[0m [1m6s[0m 916ms/step - accuracy: 0.6094 - loss: 1.3195
+[1m3/9[0m [32m======[0m[37m==============[0m [1m5s[0m 914ms/step - accuracy: 0.6146 - loss: 1.2002
+[1m4/9[0m [32m========[0m[37m============[0m [1m4s[0m 904ms/step - accuracy: 0.6133 - loss: 1.1338
+[1m5/9[0m [32m===========[0m[37m=========[0m [1m3s[0m 901ms/step - accuracy: 0.6131 - loss: 1.0820
+[1m6/9[0m [32m=============[0m[37m=======[0m [1m2s[0m 900ms/step - accuracy: 0.6186 - loss: 1.0356
+[1m7/9[0m [32m===============[0m[37m=====[0m [1m1s[0m 897ms/step - accuracy: 0.6259 - loss: 0.9947
+[1m8/9[0m [32m=================[0m[37m===[0m [1m0s[0m 894ms/step - accuracy: 0.6297 - loss: 0.9624
+[1m9/9[0m [32m====================[0m[37m[0m [1m0s[0m 829ms/step - accuracy: 0.6321 - loss: 0.9368
+[1m9/9[0m [32m====================[0m[37m[0m [1m8s[0m 939ms/step - accuracy: 0.6519 - loss: 0.7315 - val_accuracy: 0.5333 - val_loss: 1.1138
+Evaluating model performance...
+--------------------------------------------------
+InceptionV3 Baseline Results (Elapsed: 31.79s):
+  Train Accuracy:      58.52% (0.5852)
+  Validation Accuracy: 53.33% (0.5333)
+--------------------------------------------------
+
+[stderr]
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1791378932.044540   23200 cpu_feature_guard.cc:227] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: SSE3 SSE4.1 SSE4.2 AVX AVX2 AVX_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+WARNING:tensorflow:TensorFlow GPU support is not available on native Windows for TensorFlow >= 2.11. Even if CUDA/cuDNN are installed, GPU will not be used. Please use WSL2 or the TensorFlow-DirectML plugin.
+
+
+===== 06_inception_svm_hybrid =====
+$ C:\Users\Sushruth S\AppData\Local\Microsoft\WindowsApps\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\python.exe C:\Users\Sushruth S\Downloads\ML_Mini_Project\ML_mini_source\code\06_inception_svm_hybrid.py --smoke --smoke_samples 150 --batch_size 16
+
+=== Running InceptionV3 (Layer 288) + SVM Hybrid [Mode: SMOKE TEST] ===
+Loading data...
+Train samples: 135 (Damaged: 72, Undamaged: 63)
+Val samples:   15 (Damaged: 8, Undamaged: 7)
+Extracting InceptionV3 activations from layer index 288...
+Total InceptionV3 layers: 311
+Extracting features from Layer index 288: 'activation_90' (output shape: (None, 5, 5, 384))
+Extracting features for 135 images (batch_size=16)...
+
+[1m1/9[0m [32m==[0m[37m==================[0m [1m14s[0m 2s/step
+[1m2/9[0m [32m====[0m[37m================[0m [1m6s[0m 869ms/step
+[1m3/9[0m [32m======[0m[37m==============[0m [1m5s[0m 864ms/step
+[1m4/9[0m [32m========[0m[37m============[0m [1m4s[0m 863ms/step
+[1m5/9[0m [32m===========[0m[37m=========[0m [1m3s[0m 864ms/step
+[1m6/9[0m [32m=============[0m[37m=======[0m [1m2s[0m 864ms/step
+[1m7/9[0m [32m===============[0m[37m=====[0m [1m1s[0m 863ms/step
+[1m8/9[0m [32m=================[0m[37m===[0m [1m0s[0m 866ms/step
+[1m9/9[0m [32m====================[0m[37m[0m [1m0s[0m 918ms/step
+[1m9/9[0m [32m====================[0m[37m[0m [1m9s[0m 919ms/step
+Total InceptionV3 layers: 311
+Extracting features from Layer index 288: 'activation_184' (output shape: (None, 5, 5, 384))
+Extracting features for 15 images (batch_size=16)...
+
+[1m1/1[0m [32m====================[0m[37m[0m [1m0s[0m 2s/step
+[1m1/1[0m [32m====================[0m[37m[0m [1m2s[0m 2s/step
+Standardizing extracted deep features...
+
+--- Performing Gamma Sweep (reproducing Figure 3) ---
+  Gamma = 1.0e-06 | Train Acc: 53.33% | Val Acc: 53.33%
+  Gamma = 1.0e-05 | Train Acc: 53.33% | Val Acc: 53.33%
+  Gamma = 1.0e-04 | Train Acc: 53.33% | Val Acc: 53.33%
+  Gamma = 1.0e-03 | Train Acc: 87.41% | Val Acc: 73.33%
+  Gamma = 1.0e-02 | Train Acc: 100.00% | Val Acc: 60.00%
+  Gamma = 1.0e-01 | Train Acc: 100.00% | Val Acc: 53.33%
+
+Gamma sweep plot saved to: figures\figure3_inception_svm_gamma_sweep.png
+
+Optimal gamma based on validation accuracy: 1.0e-03 (Val Acc: 73.33%)
+--------------------------------------------------
+InceptionV3 Layer 288 + SVM Results (Elapsed: 13.89s):
+  Best Gamma:          1.0e-03
+  Train Accuracy:      87.41% (0.8741)
+  Validation Accuracy: 73.33% (0.7333)
+--------------------------------------------------
+
+[stderr]
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1791378967.527699    2492 cpu_feature_guard.cc:227] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: SSE3 SSE4.1 SSE4.2 AVX AVX2 AVX_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+WARNING:tensorflow:TensorFlow GPU support is not available on native Windows for TensorFlow >= 2.11. Even if CUDA/cuDNN are installed, GPU will not be used. Please use WSL2 or the TensorFlow-DirectML plugin.
+
+
+===== FINAL SMOKE-150 SUMMARY =====
+Model                                      Train       Validation    Seconds
+01_knn                                      68.89%        66.67%          0.99
+02_logistic_regression                     100.00%        53.33%          2.77
+03_svm_rbf                                 100.00%        53.33%          4.30
+04_mobilenetv1                              73.33%        66.67%         12.96
+05_inceptionv3                              58.52%        53.33%         31.79
+06_inception_svm_hybrid                     87.41%        73.33%         13.89
+
+All six experiments completed successfully.
