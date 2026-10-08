@@ -109,8 +109,8 @@ def test_error_cases():
     print("\n[Case 1] No image provided (None):")
     preview, html = classify_image(None, "All models")
     assert preview is None
-    assert "Input Error" in html and "No image provided" in html
-    print("  -> Passed: Clean friendly error displayed, no crash.")
+    assert "Please upload an image first" in html
+    print("  -> Passed: Clean plain error displayed, no crash.")
 
     # 2. Grayscale image
     print("\n[Case 2] Grayscale image (mode 'L', 100x100):")
@@ -119,7 +119,7 @@ def test_error_cases():
     assert preview is not None
     assert preview.size == (224, 224)
     assert preview.mode == "RGB"
-    assert "Majority-Vote Consensus" in html
+    assert "models say damaged" in html
     print(f"  -> Passed: Successfully converted to RGB, resized to 224x224, classified without error.")
 
     # 3. PNG with transparency (mode 'RGBA', 150x150)
@@ -129,14 +129,14 @@ def test_error_cases():
     assert preview is not None
     assert preview.size == (224, 224)
     assert preview.mode == "RGB"
-    assert "Majority-Vote Consensus" in html
+    assert "models say damaged" in html
     print(f"  -> Passed: Alpha channel safely stripped, resized to 224x224, classified without error.")
 
     # 4. Corrupt bytes
     print("\n[Case 4] Corrupt bytes input:")
     preview, html = classify_image(b"not an image byte stream", "All models")
     assert preview is None
-    assert "Input Error" in html or "Prediction Failure" in html
+    assert "Could not open" in html or "Invalid" in html or "Error" in html
     print("  -> Passed: Corrupt data handled safely with user-friendly alert, no crash.")
 
 

@@ -2,17 +2,8 @@
 gui/app.py
 ==========
 Interactive Gradio web interface for Structural Damage Image Classification.
-
-Features:
-- Image upload (JPG/PNG) and preview resized to 224x224.
-- Model selector: 6 models + 'All models' option with side-by-side view.
-- Color-coded output: Green for UNDAMAGED (ok), Red for DAMAGED (broken).
-- Confidence/probability metrics for each model.
-- Majority-vote consensus summary in 'All models' mode.
-- Model validation accuracies displayed beside model names.
-- Prominent disclaimer note regarding smoke test limitations.
-- Lazy model loading to minimize startup latency and RAM usage.
-- Robust handling of edge cases (None, grayscale, RGBA, corrupt images).
+Plain, student-built aesthetic: simple two-column layout, neutral grays,
+plain text results, and minimal styling.
 """
 
 from __future__ import annotations
@@ -56,13 +47,32 @@ MODEL_KEYS = [
 ]
 
 DEFAULT_DISPLAY_NAMES = {
-    "knn": "KNN (k=5)",
-    "logistic_regression": "Logistic Regression (L2, C=1.0)",
-    "svm_rbf": "SVM RBF (C=1.0, gamma=0.001)",
-    "mobilenetv1": "MobileNetV1 (Transfer Learning)",
-    "inceptionv3": "InceptionV3 (Transfer Learning)",
-    "inception_svm_hybrid": "InceptionV3 (Layer 288) + SVM Hybrid",
+    "knn": "KNN",
+    "logistic_regression": "Logistic Regression",
+    "svm_rbf": "SVM",
+    "mobilenetv1": "MobileNetV1",
+    "inceptionv3": "InceptionV3",
+    "inception_svm_hybrid": "InceptionV3 layer 288 + SVM",
 }
+
+MODEL_CHOICES = [
+    "KNN",
+    "Logistic Regression",
+    "SVM",
+    "MobileNetV1",
+    "InceptionV3",
+    "InceptionV3 layer 288 + SVM",
+    "All models",
+]
+
+CUSTOM_CSS = """
+footer { display: none !important; }
+.gradio-container {
+    max-width: 860px !important;
+    margin: 24px auto !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+}
+"""
 
 
 def load_model_info() -> Dict[str, Any]:
@@ -85,22 +95,6 @@ def load_model_info() -> Dict[str, Any]:
     return _MODEL_METADATA
 
 
-def get_model_choices() -> List[str]:
-    info = load_model_info()
-    models_dict = info.get("models", {})
-    choices = ["All models (compare all side by side)"]
-    for key in MODEL_KEYS:
-        m_info = models_dict.get(key, {})
-        name = m_info.get("display_name", DEFAULT_DISPLAY_NAMES.get(key, key))
-        val_acc = m_info.get("validation_accuracy", None)
-        if val_acc is not None:
-            label = f"{name} [Val Acc: {val_acc*100:.1f}%]"
-        else:
-            label = name
-        choices.append(label)
-    return choices
-
-
 def key_from_choice(choice: str) -> str:
     choice_lower = choice.lower()
     if "all models" in choice_lower:
@@ -109,7 +103,7 @@ def key_from_choice(choice: str) -> str:
         return "knn"
     if "logistic" in choice_lower:
         return "logistic_regression"
-    if "hybrid" in choice_lower or "288" in choice_lower:
+    if "288" in choice_lower or "hybrid" in choice_lower:
         return "inception_svm_hybrid"
     if "svm" in choice_lower:
         return "svm_rbf"
@@ -132,8 +126,6 @@ def get_lazy_model(model_key: str) -> Any:
             f"Saved models directory not found at {SAVED_MODELS_DIR}. "
             "Please run 'python gui/train_and_save.py' first."
         )
-
-    print(f"[LazyLoader] Loading model: {model_key}...")
 
     if model_key in ["knn", "logistic_regression", "svm_rbf"]:
         filename = f"{model_key}.joblib"
@@ -165,7 +157,6 @@ def get_lazy_model(model_key: str) -> Any:
 
         # Lazy construct InceptionV3 layer 288 feature extractor
         if "inception_feature_extractor" not in _LOADED_MODELS:
-            print("[LazyLoader] Building InceptionV3 layer 288 feature extractor...")
             full_inception = tf.keras.applications.InceptionV3(
                 include_top=False, weights="imagenet", input_shape=(224, 224, 3)
             )
@@ -186,16 +177,14 @@ def preprocess_uploaded_image(
     image_input: Union[None, str, Path, Image.Image, np.ndarray]
 ) -> Tuple[Image.Image, np.ndarray]:
     """
-    Robust image preprocessing according to spec:
-    1. Validate input is not None/empty.
-    2. Convert to RGB (handles grayscale, RGBA, CMYK, Palette cleanly).
+    Image preprocessing:
+    1. Validate input is not None.
+    2. Convert to RGB (handles grayscale, RGBA).
     3. Resize to 224x224.
     4. Convert to float32 and normalize: x = (x / 128.0) - 1.0 (range [-1, 1)).
-    Returns:
-      (preview_image: PIL.Image of size 224x224, norm_array: np.ndarray shape (224, 224, 3))
     """
     if image_input is None:
-        raise ValueError("No image provided. Please upload an image file (JPG or PNG).")
+        raise ValueError("Please upload an image first.")
 
     pil_img: Optional[Image.Image] = None
 
@@ -206,13 +195,12 @@ def preprocess_uploaded_image(
         try:
             pil_img = Image.open(p)
             pil_img.load()
-        except Exception as e:
-            raise ValueError(f"Could not open image file ({p.name}): {e}")
+        except Exception:
+            raise ValueError("Could not open image file.")
     elif isinstance(image_input, Image.Image):
         pil_img = image_input
     elif isinstance(image_input, np.ndarray):
         try:
-            # Handle grayscale or RGBA array
             if image_input.ndim == 2:
                 pil_img = Image.fromarray(image_input, mode="L")
             elif image_input.ndim == 3 and image_input.shape[2] == 4:
@@ -221,29 +209,27 @@ def preprocess_uploaded_image(
                 pil_img = Image.fromarray(image_input[:, :, 0], mode="L")
             else:
                 pil_img = Image.fromarray(image_input.astype(np.uint8), mode="RGB")
-        except Exception as e:
-            raise ValueError(f"Invalid numpy image array: {e}")
+        except Exception:
+            raise ValueError("Invalid image array.")
     elif isinstance(image_input, (bytes, io.BytesIO)):
-        stream = io.BytesIO(image_input) if isinstance(image_input, bytes) else image_input
-        pil_img = Image.open(stream)
-        pil_img.load()
+        try:
+            stream = io.BytesIO(image_input) if isinstance(image_input, bytes) else image_input
+            pil_img = Image.open(stream)
+            pil_img.load()
+        except Exception:
+            raise ValueError("Could not open image file.")
     else:
         raise TypeError(f"Unsupported image type: {type(image_input)}")
 
     if pil_img is None:
-        raise ValueError("Failed to load image.")
+        raise ValueError("Please upload an image first.")
 
-    # Convert safely to RGB (removes alpha channel, converts grayscale to 3 identical channels)
+    # Convert to RGB (removes alpha channel, replicates grayscale to 3 channels)
     if pil_img.mode != "RGB":
         pil_img = pil_img.convert("RGB")
 
-    # Resize to 224x224
     resized_preview = pil_img.resize((224, 224), Image.Resampling.BILINEAR)
-
-    # Convert to float32 [0.0, 255.0]
     img_float = np.array(resized_preview, dtype=np.float32)
-
-    # Spec: x = (x / 128.0) - 1.0 (range [-1, 1))
     norm_array = (img_float / 128.0) - 1.0
 
     return resized_preview, norm_array
@@ -252,16 +238,13 @@ def preprocess_uploaded_image(
 def predict_for_model(norm_array: np.ndarray, model_key: str) -> Dict[str, Any]:
     """
     Performs inference for a single model on a normalized (224, 224, 3) image.
-    Returns structured result dict.
     """
     info = load_model_info()
     model_meta = info.get("models", {}).get(model_key, {})
-    display_name = model_meta.get("display_name", DEFAULT_DISPLAY_NAMES.get(model_key, model_key))
+    display_name = DEFAULT_DISPLAY_NAMES.get(model_key, model_key)
     val_acc = model_meta.get("validation_accuracy", 0.0)
 
-    # Ensure shape (1, 224, 224, 3)
     batch_img = np.expand_dims(norm_array, axis=0)
-
     model_obj = get_lazy_model(model_key)
 
     if model_key in ["knn", "logistic_regression", "svm_rbf"]:
@@ -275,24 +258,20 @@ def predict_for_model(norm_array: np.ndarray, model_key: str) -> Dict[str, Any]:
             probs = clf.predict_proba(x_scaled.astype(np.float64))[0]
             conf_val = float(probs[pred])
             votes = int(round(conf_val * 5))
-            metric_type = "Neighbor vote share"
-            metric_detail = f"{conf_val*100:.1f}% ({votes}/5 neighbor votes)"
+            metric_detail = f"{int(round(conf_val * 100))}% ({votes}/5 votes)"
             prob_damaged = float(probs[1]) if len(probs) > 1 else (1.0 if pred == 1 else 0.0)
 
         elif model_key == "logistic_regression":
             pred = int(clf.predict(x_scaled)[0])
             probs = clf.predict_proba(x_scaled)[0]
             conf_val = float(probs[pred])
-            metric_type = "Sigmoid probability"
-            metric_detail = f"{conf_val*100:.1f}% (P(Damaged) = {probs[1]*100:.1f}%)"
+            metric_detail = f"{int(round(conf_val * 100))}%"
             prob_damaged = float(probs[1])
 
         else:  # svm_rbf
             pred = int(clf.predict(x_scaled)[0])
             dec_score = float(clf.decision_function(x_scaled)[0])
-            metric_type = "decision_function"
-            metric_detail = f"Score: {dec_score:+.4f} (threshold: 0.0, margin distance)"
-            # Approximate logistic sigmoid probability for reporting
+            metric_detail = f"{dec_score:+.2f} (decision function)"
             prob_damaged = float(1.0 / (1.0 + np.exp(-dec_score)))
 
     elif model_key in ["mobilenetv1", "inceptionv3"]:
@@ -300,9 +279,8 @@ def predict_for_model(norm_array: np.ndarray, model_key: str) -> Dict[str, Any]:
         raw_preds = keras_model.predict(batch_img, verbose=0)[0]
         pred = int(np.argmax(raw_preds))
         conf_val = float(raw_preds[pred])
-        metric_type = "Softmax probability"
+        metric_detail = f"{int(round(conf_val * 100))}%"
         prob_damaged = float(raw_preds[1]) if len(raw_preds) > 1 else float(raw_preds[0])
-        metric_detail = f"{conf_val*100:.1f}% (P(Damaged) = {prob_damaged*100:.1f}%)"
 
     elif model_key == "inception_svm_hybrid":
         svm = model_obj["model"]
@@ -313,16 +291,15 @@ def predict_for_model(norm_array: np.ndarray, model_key: str) -> Dict[str, Any]:
         feats_scaled = scaler.transform(features)
         pred = int(svm.predict(feats_scaled)[0])
         dec_score = float(svm.decision_function(feats_scaled)[0])
-        metric_type = "decision_function"
-        metric_detail = f"Score: {dec_score:+.4f} (threshold: 0.0, deep feature margin)"
+        metric_detail = f"{dec_score:+.2f} (decision function)"
         prob_damaged = float(1.0 / (1.0 + np.exp(-dec_score)))
 
     else:
         raise ValueError(f"Unknown model_key: {model_key}")
 
     is_damaged = (pred == 1)
-    label_text = "DAMAGED (broken)" if is_damaged else "UNDAMAGED (ok)"
-    color = "#dc3545" if is_damaged else "#198754"
+    label_text = "Damaged" if is_damaged else "Undamaged"
+    color = "#990000" if is_damaged else "#006600"
 
     return {
         "model_key": model_key,
@@ -332,141 +309,93 @@ def predict_for_model(norm_array: np.ndarray, model_key: str) -> Dict[str, Any]:
         "is_damaged": is_damaged,
         "label": label_text,
         "color": color,
-        "metric_type": metric_type,
         "metric_detail": metric_detail,
         "prob_damaged": prob_damaged,
     }
 
 
 def format_single_result_html(res: Dict[str, Any]) -> str:
-    color = res["color"]
-    label = res["label"]
-    name = res["display_name"]
+    """
+    Renders single model prediction as plain text with only the result word colored.
+    """
+    color = "#990000" if res["is_damaged"] else "#006600"
+    word = "Damaged" if res["is_damaged"] else "Undamaged"
+    conf_str = res["metric_detail"]
     val_acc = res["val_accuracy"]
-    metric_type = res["metric_type"]
-    metric_detail = res["metric_detail"]
-
-    badge_bg = "#fee2e2" if res["is_damaged"] else "#dcfce7"
-    badge_border = "#ef4444" if res["is_damaged"] else "#22c55e"
-    badge_text = "#991b1b" if res["is_damaged"] else "#166534"
-    icon = "⚠️" if res["is_damaged"] else "✅"
+    val_acc_pct = f"{val_acc * 100:.1f}%" if val_acc is not None else "N/A"
 
     html = f"""
-    <div style="border: 2px solid {badge_border}; border-radius: 12px; padding: 20px; background: #ffffff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); font-family: system-ui, -apple-system, sans-serif;">
-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 12px; margin-bottom: 16px;">
-            <h3 style="margin: 0; color: #111827; font-size: 1.25rem; font-weight: 600;">{name}</h3>
-            <span style="background: #f3f4f6; color: #374151; padding: 4px 10px; border-radius: 20px; font-size: 0.85rem; font-weight: 500;">
-                Val Acc: {val_acc*100:.1f}%
-            </span>
-        </div>
-        
-        <div style="background: {badge_bg}; border: 1.5px solid {badge_border}; border-radius: 8px; padding: 14px 18px; text-align: center; margin-bottom: 16px;">
-            <span style="font-size: 1.35rem; font-weight: 700; color: {badge_text};">
-                {icon} {label}
-            </span>
-        </div>
-
-        <div style="background: #f9fafb; border-radius: 8px; padding: 12px 16px; font-size: 0.95rem; color: #374151;">
-            <div style="margin-bottom: 6px;">
-                <strong>Confidence / Metric ({metric_type}):</strong>
-            </div>
-            <div style="font-family: monospace; font-size: 1.05rem; color: #111827;">
-                {metric_detail}
-            </div>
-        </div>
+    <div style="font-size: 15px; line-height: 1.8; color: #111; margin-top: 4px;">
+        <div>Result: <span style="color: {color}; font-weight: bold;">{word}</span></div>
+        <div>Confidence: {conf_str}</div>
+        <div style="color: #666; font-size: 13px; margin-top: 6px;">Model validation accuracy: {val_acc_pct}</div>
     </div>
     """
-    return html
+    return html.strip()
 
 
 def format_all_results_html(results: List[Dict[str, Any]]) -> str:
+    """
+    Renders simple table: Model | Prediction | Confidence | Val accuracy
+    with plain count line underneath.
+    """
     n_damaged = sum(1 for r in results if r["is_damaged"])
-    n_undamaged = len(results) - n_damaged
-
-    if n_damaged > n_undamaged:
-        consensus_label = "DAMAGED (broken)"
-        consensus_bg = "#fee2e2"
-        consensus_border = "#ef4444"
-        consensus_text = "#991b1b"
-        icon = "⚠️"
-    elif n_undamaged > n_damaged:
-        consensus_label = "UNDAMAGED (ok)"
-        consensus_bg = "#dcfce7"
-        consensus_border = "#22c55e"
-        consensus_text = "#166534"
-        icon = "✅"
-    else:
-        consensus_label = "TIE (Equally Split)"
-        consensus_bg = "#fef3c7"
-        consensus_border = "#f59e0b"
-        consensus_text = "#92400e"
-        icon = "⚖️"
+    total_models = len(results)
 
     rows_html = ""
     for r in results:
-        bg = "#fef2f2" if r["is_damaged"] else "#f0fdf4"
-        txt = "#991b1b" if r["is_damaged"] else "#166534"
-        badge = f"""<span style="background: {bg}; color: {txt}; padding: 4px 8px; border-radius: 6px; font-weight: 600; font-size: 0.9rem;">{r['label']}</span>"""
+        color = "#990000" if r["is_damaged"] else "#006600"
+        word = "Damaged" if r["is_damaged"] else "Undamaged"
+        val_acc = r["val_accuracy"]
+        val_acc_pct = f"{val_acc * 100:.1f}%" if val_acc is not None else "N/A"
         rows_html += f"""
-        <tr style="border-bottom: 1px solid #e5e7eb;">
-            <td style="padding: 10px 12px; font-weight: 600; color: #111827;">{r['display_name']}</td>
-            <td style="padding: 10px 12px; text-align: center; color: #4b5563;">{r['val_accuracy']*100:.1f}%</td>
-            <td style="padding: 10px 12px; text-align: center;">{badge}</td>
-            <td style="padding: 10px 12px; font-family: monospace; font-size: 0.85rem; color: #374151;">{r['metric_detail']}</td>
+        <tr style="border-bottom: 1px solid #e5e5e5;">
+            <td style="padding: 7px 10px;">{r['display_name']}</td>
+            <td style="padding: 7px 10px;"><span style="color: {color}; font-weight: bold;">{word}</span></td>
+            <td style="padding: 7px 10px;">{r['metric_detail']}</td>
+            <td style="padding: 7px 10px;">{val_acc_pct}</td>
         </tr>
         """
 
     html = f"""
-    <div style="font-family: system-ui, -apple-system, sans-serif; background: #ffffff; border-radius: 12px; border: 1px solid #e5e7eb; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-        <!-- Majority Vote Banner -->
-        <div style="background: {consensus_bg}; border: 2px solid {consensus_border}; border-radius: 10px; padding: 14px 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-            <div>
-                <span style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; color: #4b5563; display: block;">Majority-Vote Consensus</span>
-                <span style="font-size: 1.4rem; font-weight: 800; color: {consensus_text};">{icon} {consensus_label}</span>
-            </div>
-            <div style="font-size: 1.05rem; font-weight: 600; color: #1f2937; background: #ffffff; padding: 8px 14px; border-radius: 8px; border: 1px solid #e5e7eb;">
-                <span style="color: #dc2525;">Damaged: <strong>{n_damaged}/6</strong></span> &nbsp;|&nbsp; 
-                <span style="color: #16a34a;">Undamaged: <strong>{n_undamaged}/6</strong></span>
-            </div>
-        </div>
-
-        <!-- Comparison Table -->
-        <div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: collapse; text-align: left;">
-                <thead>
-                    <tr style="background: #f8fafc; border-bottom: 2px solid #cbd5e1;">
-                        <th style="padding: 10px 12px; font-size: 0.85rem; color: #475569; text-transform: uppercase;">Model</th>
-                        <th style="padding: 10px 12px; font-size: 0.85rem; color: #475569; text-transform: uppercase; text-align: center;">Val Acc</th>
-                        <th style="padding: 10px 12px; font-size: 0.85rem; color: #475569; text-transform: uppercase; text-align: center;">Prediction</th>
-                        <th style="padding: 10px 12px; font-size: 0.85rem; color: #475569; text-transform: uppercase;">Confidence / Metric</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {rows_html}
-                </tbody>
-            </table>
-        </div>
+    <div style="font-size: 14px; color: #111; margin-top: 4px;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left; margin-bottom: 10px;">
+            <thead>
+                <tr style="border-bottom: 1px solid #ccc; background: #f9f9f9;">
+                    <th style="padding: 7px 10px; font-weight: 600;">Model</th>
+                    <th style="padding: 7px 10px; font-weight: 600;">Prediction</th>
+                    <th style="padding: 7px 10px; font-weight: 600;">Confidence</th>
+                    <th style="padding: 7px 10px; font-weight: 600;">Val accuracy</th>
+                </tr>
+            </thead>
+            <tbody>
+                {rows_html}
+            </tbody>
+        </table>
+        <p style="margin: 8px 0 0 0; font-size: 14px; color: #222;">{n_damaged} of {total_models} models say damaged.</p>
     </div>
     """
-    return html
+    return html.strip()
 
 
 def classify_image(
     image_input: Any, model_choice: str
 ) -> Tuple[Optional[Image.Image], str]:
     """
-    Main prediction callback for Gradio and standalone tests.
+    Prediction callback: handles validation, inference, and plain text formatting.
     """
+    if image_input is None:
+        return None, '<p style="color: #990000; margin: 0;">Please upload an image first.</p>'
+
     try:
         preview_img, norm_arr = preprocess_uploaded_image(image_input)
     except Exception as e:
-        error_html = f"""
-        <div style="background: #fee2e2; border: 1.5px solid #ef4444; border-radius: 8px; padding: 16px; color: #991b1b; font-family: system-ui, sans-serif;">
-            <h4 style="margin: 0 0 6px 0; font-size: 1.05rem;">❌ Input Error</h4>
-            <p style="margin: 0;">{str(e)}</p>
-        </div>
-        """
-        return None, error_html
+        msg = str(e)
+        if "No image provided" in msg:
+            msg = "Please upload an image first."
+        if not msg.endswith("."):
+            msg += "."
+        return None, f'<p style="color: #990000; margin: 0;">{msg}</p>'
 
     chosen_key = key_from_choice(model_choice)
 
@@ -484,52 +413,18 @@ def classify_image(
         return preview_img, output_html
 
     except Exception as e:
-        error_html = f"""
-        <div style="background: #fee2e2; border: 1.5px solid #ef4444; border-radius: 8px; padding: 16px; color: #991b1b; font-family: system-ui, sans-serif;">
-            <h4 style="margin: 0 0 6px 0; font-size: 1.05rem;">❌ Prediction Failure</h4>
-            <p style="margin: 0;">{str(e)}</p>
-        </div>
-        """
-        return preview_img, error_html
+        return preview_img, f'<p style="color: #990000; margin: 0;">Error during classification: {e}.</p>'
 
 
 def build_app() -> gr.Blocks:
     """
-    Constructs the Gradio application layout.
+    Constructs the plain, simple Gradio application layout.
     """
-    choices = get_model_choices()
-
-    sample_examples = []
-    if SAMPLE_IMAGES_DIR.exists():
-        for fn in sorted(os.listdir(SAMPLE_IMAGES_DIR)):
-            if fn.endswith((".png", ".jpg", ".jpeg")):
-                sample_examples.append(str(SAMPLE_IMAGES_DIR / fn))
-
-    with gr.Blocks(
-        title="Structural Damage Classifier",
-    ) as demo:
+    with gr.Blocks(title="Structural Damage Classifier") as demo:
         gr.Markdown(
             """
-            # 🏗️ Structural Damage Image Classification
-            ### PEER Hub ImageNet Benchmark — Six Model Pipeline Demo
-            """
-        )
-
-        # Required Honest Limitation Banner
-        gr.HTML(
-            """
-            <div style="background: #fffbeb; border-left: 5px solid #f59e0b; padding: 14px 18px; border-radius: 6px; margin-bottom: 20px; font-family: system-ui, sans-serif; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="font-size: 1.3rem;">⚠️</span>
-                    <div>
-                        <strong style="color: #b45309; font-size: 0.95rem;">DISCLAIMER & DEMO NOTE:</strong>
-                        <p style="margin: 3px 0 0 0; color: #92400e; font-size: 0.9rem; line-height: 1.4;">
-                            These models were trained on only <strong>150 images (smoke test)</strong>, so predictions are unreliable. 
-                            This is a demo of the pipeline, not a real damage detector.
-                        </p>
-                    </div>
-                </div>
-            </div>
+            # Structural Damage Classifier
+            Upload a photo of a structure to check whether it is damaged.
             """
         )
 
@@ -537,39 +432,36 @@ def build_app() -> gr.Blocks:
             with gr.Column(scale=1):
                 image_input = gr.Image(
                     type="pil",
-                    label="Upload Structural Image (JPG or PNG)",
+                    label="Upload image",
                     sources=["upload", "clipboard"],
                 )
                 model_dropdown = gr.Dropdown(
-                    choices=choices,
-                    value=choices[0],
-                    label="Select Model",
+                    choices=MODEL_CHOICES,
+                    value="All models",
+                    label="Model",
                     interactive=True,
                 )
-                classify_btn = gr.Button("🔍 Classify Damage State", variant="primary", size="lg")
-
-                if sample_examples:
-                    gr.Markdown("#### Sample Validation Images (Click to Test):")
-                    gr.Examples(
-                        examples=sample_examples,
-                        inputs=image_input,
-                        label="Sample Dataset Images",
-                    )
-
-            with gr.Column(scale=1):
+                classify_btn = gr.Button("Classify", variant="primary")
                 preview_output = gr.Image(
                     type="pil",
-                    label="224 × 224 Preprocessed Preview (Input to Model)",
+                    label="224x224 preview",
                     interactive=False,
-                    height=240,
+                    height=224,
                 )
+
+            with gr.Column(scale=1):
+                gr.Markdown("### Result")
                 result_output = gr.HTML(
-                    value="""
-                    <div style="background: #f9fafb; border: 1px dashed #d1d5db; border-radius: 8px; padding: 30px; text-align: center; color: #6b7280; font-family: system-ui, sans-serif;">
-                        Upload an image and click <strong>Classify Damage State</strong> to view predictions.
-                    </div>
-                    """
+                    value="<p style='color: #666; margin: 0;'>Select an image and click Classify.</p>"
                 )
+
+        gr.HTML(
+            """
+            <div style="margin-top: 24px; padding-top: 12px; border-top: 1px solid #e5e5e5; font-size: 12px; color: #777;">
+                Trained on a small sample (150 images), so results are not reliable. This is a demo of the pipeline.
+            </div>
+            """
+        )
 
         classify_btn.click(
             fn=classify_image,
@@ -586,7 +478,8 @@ def main():
         server_name="127.0.0.1",
         server_port=7860,
         inbrowser=False,
-        theme=gr.themes.Soft(primary_hue="blue"),
+        css=CUSTOM_CSS,
+        theme=gr.themes.Base(primary_hue="slate", neutral_hue="slate"),
     )
 
 

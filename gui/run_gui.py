@@ -93,7 +93,7 @@ def main():
     # 3. Import and launch app
     print("Starting Gradio Web Application...")
     import gradio as gr
-    from app import build_app
+    from app import build_app, CUSTOM_CSS
 
     demo = build_app()
     server_port = 7860
@@ -110,7 +110,8 @@ def main():
         server_name=server_name,
         server_port=server_port,
         inbrowser=False,
-        theme=gr.themes.Soft(primary_hue="blue"),
+        css=CUSTOM_CSS,
+        theme=gr.themes.Base(primary_hue="slate", neutral_hue="slate"),
     )
 
 
