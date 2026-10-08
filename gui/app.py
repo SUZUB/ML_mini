@@ -477,7 +477,7 @@ def main():
     demo.launch(
         server_name="127.0.0.1",
         server_port=7860,
-        inbrowser=False,
+        inbrowser=True,
         css=CUSTOM_CSS,
         theme=gr.themes.Base(primary_hue="slate", neutral_hue="slate"),
     )
